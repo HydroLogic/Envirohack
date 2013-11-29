@@ -1,57 +1,17 @@
-﻿var maxStat = -999999999.0;
-var minStat = 999999999.0;
-var map = null;
+﻿var map = null;
 var info = null;
 var legend = null;
 var geojsonLayer;
+var startZoom = 13;
 
-//List of stats
-stats = [{ "name": "Per HH per day", "value": "l_hh_day_2009", "numGrades": 7, "grades": [0, 100, 200, 300, 400, 500, 600, 700] },
-         { "name": "Per person per day", "value": "l_pp_day_2009", "numGrades": 7, "grades": [0, 50, 100, 150, 200, 250, 300, 350]}];
-
-//console.log(stats);
-
-//'</h4>Per HH per day <b>' + parseInt(props.l_hh_day_2009).toString() + ' L</b><br/>' +
-//'</h4>Per Person per day <b>' + parseInt(props.l_pp_day_2009).toString() + ' L</b><br/>' +
-//'</h4>HH median income <b>$' + props.hh_med_income.toString() + '</b><br/>' +
-//'</h4>Avg people per HH <b>' + props.hh_avg_size.toString() + '</b><br/>' +
-//'</h4>Household count <b>' + props.hh_count.toString() + '</b><br/>' +
-//'</h4>Households/sq km <b>' + parseInt(props.hh_density.toString()).toString() + '</b><br/>'
-
-var themeGrades = [];
-
-// get querystring as an array
-//Code from http://forum.jquery.com/topic/getting-value-from-a-querystring
-var querystring = location.search.replace('?', '').split('&');
-var queryObj = {};
-// loop through each name-value pair and populate object
-for (var i = 0; i < querystring.length; i++) {
-    var name = querystring[i].split('=')[0];
-    var value = querystring[i].split('=')[1];
-    queryObj[name] = value;
-}
-
-//Get start zoom level if submitted
-var startZoom = 0;
-if (queryObj["zoom"] == undefined) startZoom = 12;
-else startZoom = parseInt(queryObj["zoom"]);
-
-//Get initial stat to shade map with
-var currStat = "";
-if (queryObj["stat"] == undefined || queryObj["stat"] == "person") {
-    currStat = "l_pp_day_2009";
-    themeGrades = [0, 50, 100, 150, 200, 250, 300, 350];
-}
-else {
-    currStat = "l_hh_day_2009";
-    themeGrades = [0, 100, 200, 300, 400, 500, 600, 700];
-}
+var currStat = "l_pp_day_2009";
+var themeGrades = [0, 50, 100, 150, 200, 250, 300, 350];
 
 function init() {
     //Initialize the map on the "map" div
     map = new L.Map('map');
     
-    // control that shows state info on hover
+    //Control that shows state info on hover
     info = L.control();
 
     info.onAdd = function (map) {
@@ -122,6 +82,7 @@ function init() {
                 themeGrades = [0, 50, 100, 150, 200, 250, 300, 350];
         }
 
+        //Refresh the boundaries
         loadGeoJson(json);
 
         //Update the legend
@@ -140,21 +101,14 @@ function init() {
 
         $("#mapLegend").hide().html(data).fadeIn('fast');
 
-
     });
 
+    //Add funky new Mozilla themed MapBox tiles
     var tiles = new L.TileLayer('http://d.tiles.mapbox.com/v3/mozilla-webprod.e91ef8b3/{z}/{x}/{y}.png', {
         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
         maxZoom: 14,
         opacity: 0.7
     });
-
-    ////Add a WMS Layer from NICTA
-    //var tiles = new L.TileLayer.WMS("http://envirohack.research.nicta.com.au/admin_bnds_abs/ows", {
-    //    layers: 'admin_bnds:SSC_2011_AUST',
-    //    format: 'image/png',
-    //    transparent: true
-    //});
 
     //Add the tiled map layer to the map
     map.addLayer(tiles);
@@ -162,15 +116,16 @@ function init() {
     //Set the view to a given center and zoom
     map.setView(new L.LatLng(-37.814666, 144.964256), startZoom);
 
-    //Acknowledge the ABS Census and ATO Tax Data
+    //Acknowledge the data providers
     map.attributionControl.addAttribution('Census data © <a href="http://www.abs.gov.au/websitedbs/D3310114.nsf/Home/%C2%A9+Copyright">ABS</a>');
     map.attributionControl.addAttribution('Water data © <a href="http://www.dse.vic.gov.au/">Victorian Department of Sustainability and Environment</a>');
 
-    //Load the boundaries
+    //Display the boundaries
     loadGeoJson(json);
 
 }
 
+//Sets style on each GeoJSON object
 function style(feature) {
     colVal = parseFloat(feature.properties[currStat]);
 
@@ -183,7 +138,7 @@ function style(feature) {
     };
 }
 
-// get color depending on population density value
+//Get color depending on value
 function getColor(d) {
     return d > themeGrades[7] ? '#800026' :
            d > themeGrades[6] ? '#BD0026' :
@@ -193,40 +148,6 @@ function getColor(d) {
            d > themeGrades[2] ? '#FEB24C' :
            d > themeGrades[1] ? '#FED976' :
                                 '#FFEDA0';
-}
-
-function highlightFeature(e) {
-    var layer = e.target;
-
-    layer.setStyle({
-        weight: 5,
-        color: '#666',
-        fillOpacity: 0.7
-    });
-
-    if (!L.Browser.ie && !L.Browser.opera) {
-        layer.bringToFront();
-    }
-
-    info.update(layer.feature.properties);
-
-}
-
-function resetHighlight(e) {
-    geojsonLayer.resetStyle(e.target);
-    info.update();
-}
-
-function zoomToFeature(e) {
-    map.fitBounds(e.target.getBounds());
-}
-
-function onEachFeature(feature, layer) {
-    layer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight,
-        click: zoomToFeature
-    });
 }
 
 function loadGeoJson(json) {
@@ -243,4 +164,41 @@ function loadGeoJson(json) {
             onEachFeature: onEachFeature
         }).addTo(map);
     }
+}
+
+function onEachFeature(feature, layer) {
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: zoomToFeature
+    });
+}
+
+function highlightFeature(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        color: '#666',
+        fillOpacity: 0.65
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera) {
+        layer.bringToFront();
+    }
+
+    info.update(layer.feature.properties);
+
+}
+
+function resetHighlight(e) {
+    geojsonLayer.resetStyle(e.target);
+    info.update();
+}
+
+function zoomToFeature(e) {
+    var layer = e.target;
+
+    map.fitBounds(layer.getBounds());
+    info.update(layer.feature.properties);
 }
