@@ -2,7 +2,7 @@
 var info = null;
 var legend = null;
 var geojsonLayer;
-var startZoom = 13;
+var startZoom = 12;
 
 var currStat = "l_pp_day_2009";
 var themeGrades = [0, 50, 100, 150, 200, 250, 300, 350];
@@ -28,7 +28,7 @@ function init() {
             '</h4>HH Median income <b>$' + props.hh_med_income.toString() + '</b><br/>' +
             '</h4>Household count <b>' + props.hh_count.toString() + '</b><br/>' +
             '</h4>Households/sq km <b>' + parseInt(props.hh_density.toString()).toString() + '</b><br/>'
-            : 'Hover over a postcode');
+            : 'Select a postcode');
     };
 
     info.addTo(map);
@@ -107,11 +107,37 @@ function init() {
     var tiles = new L.TileLayer('http://d.tiles.mapbox.com/v3/mozilla-webprod.e91ef8b3/{z}/{x}/{y}.png', {
         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
         maxZoom: 14,
-        opacity: 0.7
+        opacity: 0.65
     });
 
     //Add the tiled map layer to the map
     map.addLayer(tiles);
+    
+    //Change the start zoom and font size based on window size
+    var windowWidth = $(window).width();
+    var windowHeight = $(window).height();
+    var width = 0
+
+    if (windowWidth > windowHeight) width = windowWidth;
+    else width = windowHeight;
+
+    console.log($('.info').css('font'));
+
+    console.log(width);
+
+    if (width > 2000) {
+        startZoom += 1;
+        $('.info').css({ 'font': 'normal normal normal 16px/22px Arial, Helvetica, sans-serif', 'line-height': '22px' });
+        $('.legend').css({ 'font': 'normal normal normal 16px/22px Arial, Helvetica, sans-serif', 'line-height': '22px' });
+        $('.dropdown').css({ 'line-height': '22px' });
+    }
+    else if (width < 1200) {
+        $('.info').css({ 'font': 'normal normal normal 12px/16px Arial, Helvetica, sans-serif', 'line-height': '18px' });
+        $('.legend').css({ 'font': 'normal normal normal 12px/16px Arial, Helvetica, sans-serif', 'line-height': '18px' });
+        $('.dropdown').css({ 'line-height': '18px' });
+    }
+
+    console.log($('.info').css('font'));
 
     //Set the view to a given center and zoom
     map.setView(new L.LatLng(-37.814666, 144.964256), startZoom);
@@ -123,31 +149,6 @@ function init() {
     //Display the boundaries
     loadGeoJson(json);
 
-}
-
-//Sets style on each GeoJSON object
-function style(feature) {
-    colVal = parseFloat(feature.properties[currStat]);
-
-    return {
-        weight: 1,
-        opacity: 0.7,
-        color: getColor(colVal),
-        fillOpacity: 0.4,
-        fillColor: getColor(colVal)
-    };
-}
-
-//Get color depending on value
-function getColor(d) {
-    return d > themeGrades[7] ? '#800026' :
-           d > themeGrades[6] ? '#BD0026' :
-           d > themeGrades[5] ? '#E31A1C' :
-           d > themeGrades[4] ? '#FC4E2A' :
-           d > themeGrades[3] ? '#FD8D3C' :
-           d > themeGrades[2] ? '#FEB24C' :
-           d > themeGrades[1] ? '#FED976' :
-                                '#FFEDA0';
 }
 
 function loadGeoJson(json) {
@@ -166,11 +167,37 @@ function loadGeoJson(json) {
     }
 }
 
+
+//Sets style on each GeoJSON object
+function style(feature) {
+    colVal = parseFloat(feature.properties[currStat]);
+
+    return {
+        weight: 1,
+        opacity: 0.6,
+        color: getColor(colVal),
+        fillOpacity: 0.4,
+        fillColor: getColor(colVal)
+    };
+}
+
+//Get color depending on value
+function getColor(d) {
+    return d > themeGrades[7] ? '#800026' :
+           d > themeGrades[6] ? '#BD0026' :
+           d > themeGrades[5] ? '#E31A1C' :
+           d > themeGrades[4] ? '#FC4E2A' :
+           d > themeGrades[3] ? '#FD8D3C' :
+           d > themeGrades[2] ? '#FEB24C' :
+           d > themeGrades[1] ? '#FED976' :
+                                '#FFEDA0';
+}
+
 function onEachFeature(feature, layer) {
     layer.on({
         mouseover: highlightFeature,
         mouseout: resetHighlight,
-        click: zoomToFeature
+        click: highlightFeature
     });
 }
 
@@ -194,11 +221,4 @@ function highlightFeature(e) {
 function resetHighlight(e) {
     geojsonLayer.resetStyle(e.target);
     info.update();
-}
-
-function zoomToFeature(e) {
-    var layer = e.target;
-
-    map.fitBounds(layer.getBounds());
-    info.update(layer.feature.properties);
 }
