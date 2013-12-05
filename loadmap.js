@@ -1,11 +1,15 @@
-﻿var map = null;
-var info = null;
-var legend = null;
+﻿var map;
+var info;
+var legend;
+var json;
 var geojsonLayer;
+var currTarget;
 var startZoom = 12;
 
 var currStat = "l_pp_day_2009";
 var themeGrades = [0, 50, 100, 150, 200, 250, 300, 350];
+
+
 
 function init() {
     //Initialize the map on the "map" div
@@ -82,7 +86,7 @@ function init() {
                 themeGrades = [0, 50, 100, 150, 200, 250, 300, 350];
         }
 
-        //Refresh the boundaries
+        //Display the boundaries
         loadGeoJson(json);
 
         //Update the legend
@@ -121,10 +125,6 @@ function init() {
     if (windowWidth > windowHeight) width = windowWidth;
     else width = windowHeight;
 
-    console.log($('.info').css('font'));
-
-    console.log(width);
-
     if (width > 2000) {
         startZoom += 1;
         $('.info').css({ 'font': 'normal normal normal 16px/22px Arial, Helvetica, sans-serif', 'line-height': '22px' });
@@ -137,8 +137,6 @@ function init() {
         $('.dropdown').css({ 'line-height': '18px' });
     }
 
-    console.log($('.info').css('font'));
-
     //Set the view to a given center and zoom
     map.setView(new L.LatLng(-37.814666, 144.964256), startZoom);
 
@@ -146,6 +144,23 @@ function init() {
     map.attributionControl.addAttribution('Census data © <a href="http://www.abs.gov.au/websitedbs/D3310114.nsf/Home/%C2%A9+Copyright">ABS</a>');
     map.attributionControl.addAttribution('Water data © <a href="http://www.dse.vic.gov.au/">Victorian Department of Sustainability and Environment</a>');
 
+    //Load the boundaries
+    json = (function () {
+        var json = null;
+        $.ajax({
+            'async': false,
+            'global': false,
+            'url': "postcodes_14.geojson",
+            'dataType': "json",
+            'success': function (data) {
+                json = data;
+            }
+        });
+        return json;
+    })();
+
+    //console.log(json);
+    
     //Display the boundaries
     loadGeoJson(json);
 
@@ -197,10 +212,16 @@ function onEachFeature(feature, layer) {
     layer.on({
         mouseover: highlightFeature,
         mouseout: resetHighlight,
-        click: highlightFeature
+        click: function (e) {
+            if (currTarget) {
+                resetHighlight(currTarget); //reset previously clicked postcode
+            }
+            currTarget = e;
+            highlightFeature(e);
+        }
     });
 }
-
+ 
 function highlightFeature(e) {
     var layer = e.target;
 
